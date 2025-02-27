@@ -18,30 +18,16 @@ RUN python3.11 -m pip install --upgrade pip && \
 # Add src files
 ADD src .
 
-# Login to HuggingFace
-RUN --mount=type=secret,id=hf_token \
-    if [ -f "/run/secrets/hf_token" ]; then \
-        huggingface-cli login --token $(cat /run/secrets/hf_token); \
+# Login to HuggingFace and download models during build
+RUN if [ -n "${HUGGING_FACE_HUB_TOKEN}" ]; then \
+        huggingface-cli login --token ${HUGGING_FACE_HUB_TOKEN} && \
+        python3.11 -c " \
+        from diffusers import AutoPipelineForText2Image; \
+        import torch; \
+        pipeline = AutoPipelineForText2Image.from_pretrained('black-forest-labs/FLUX.1-dev', token='${HUGGING_FACE_HUB_TOKEN}'); \
+        pipeline.load_lora_weights('soloai1/fluxtrain2', weight_name='my_first_flux_lora_v1_000003500.safetensors', token='${HUGGING_FACE_HUB_TOKEN}') \
+        "; \
     fi
 
 CMD python3.11 -u /handler.py
 ```
-
-#!/usr/bin/env python
-import runpod
-
-def handler(event):
-    """
-    Simple test handler that returns a welcome message
-    Once this works, we'll add the image generation code back
-    """
-    try:
-        return {
-            "status": "success",
-            "message": "Handler is working!"
-        }
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
-
-if __name__ == "__main__":
-    runpod.serverless.start({"handler": handler})
