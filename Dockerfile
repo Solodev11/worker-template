@@ -5,7 +5,11 @@ WORKDIR /
 
 # Environment variables (Hugging Face token and cache location)
 ENV HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}
-ENV HUGGINGFACE_HUB_CACHE="/root/.cache/huggingface"
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY builder/requirements.txt /requirements.txt
@@ -13,9 +17,16 @@ RUN python3.11 -m pip install --upgrade pip && \
     python3.11 -m pip install --upgrade -r /requirements.txt --no-cache-dir && \
     rm /requirements.txt
 
-# Copy model fetcher and run it
-COPY builder/model_fetcher.py /model_fetcher.py
-RUN python3.11 /model_fetcher.py && rm /model_fetcher.py
+# Create model directories and download models
+RUN mkdir -p /models/unet /models/vae /models/loras && \
+    wget --header="Authorization: Bearer ${HUGGING_FACE_HUB_TOKEN}" \
+        -O /models/unet/flux1-dev.safetensors \
+        https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/flux1-dev.safetensors && \
+    wget --header="Authorization: Bearer ${HUGGING_FACE_HUB_TOKEN}" \
+        -O /models/vae/ae.safetensors \
+        https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/ae.safetensors && \
+    wget -O /models/loras/my_first_flux_lora.safetensors \
+        https://huggingface.co/soloai1/fluxtrain2/resolve/main/my_first_flux_lora_v1_000003500.safetensors
 
 # Copy the source code
 ADD src .

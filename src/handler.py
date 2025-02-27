@@ -43,18 +43,20 @@ INPUT_SCHEMA = {
 pipeline = None
 
 def init_pipeline():
-    """Initialize the diffusion pipeline and load the LoRA weights if not already done."""
+    """Initialize the diffusion pipeline and load the local LoRA weights."""
     global pipeline
     if pipeline is None:
-        pipeline = AutoPipelineForText2Image.from_pretrained(
-            'black-forest-labs/FLUX.1-dev',
-            torch_dtype=torch.bfloat16,
-            token=os.environ.get("HUGGING_FACE_HUB_TOKEN")
+        # Load from local files
+        pipeline = AutoPipelineForText2Image.from_single_file(
+            "/models/unet/flux1-dev.safetensors",
+            vae_file="/models/vae/ae.safetensors",
+            torch_dtype=torch.bfloat16
         ).to('cuda')
+        
+        # Load local LoRA weights
         pipeline.load_lora_weights(
-            'soloai1/fluxtrain2',
-            weight_name='my_first_flux_lora_v1_000003500.safetensors',
-            token=os.environ.get("HUGGING_FACE_HUB_TOKEN")
+            "/models/loras",
+            weight_name="my_first_flux_lora.safetensors"
         )
     return pipeline
 

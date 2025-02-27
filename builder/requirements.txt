@@ -12,3 +12,6 @@ transformers
 peft
 sentencepiece
 protobuf
+huggingface_hub
+accelerate
+transformers

@@ -12,15 +12,23 @@ apt-get install -y --no-install-recommends \
     wget \
     openssh-server
 
-# Create cache directory
-mkdir -p /root/.cache/huggingface
+# Create model directories
+mkdir -p /models/unet
+mkdir -p /models/vae
+mkdir -p /models/loras
 
-# Download models using the fetcher script
-python3.11 /model_fetcher.py
+# Download model files with authorization
+echo "Downloading model files..."
+wget --header="Authorization: Bearer ${HUGGING_FACE_HUB_TOKEN}" \
+     -O /models/unet/flux1-dev.safetensors \
+     https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/flux1-dev.safetensors
 
-# Clean up
-apt-get autoremove -y && \
-apt-get clean -y && \
-rm -rf /var/lib/apt/lists/*
+wget --header="Authorization: Bearer ${HUGGING_FACE_HUB_TOKEN}" \
+     -O /models/vae/ae.safetensors \
+     https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/ae.safetensors
+
+# Download LoRA weights
+wget -O /models/loras/my_first_flux_lora.safetensors \
+     https://huggingface.co/soloai1/fluxtrain2/resolve/main/my_first_flux_lora_v1_000003500.safetensors
 
 echo "Setup completed successfully"
