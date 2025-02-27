@@ -30,4 +30,3 @@ RUN if [ -n "${HUGGING_FACE_HUB_TOKEN}" ]; then \
     fi
 
 CMD python3.11 -u /handler.py
-```
