@@ -1,6 +1,8 @@
 # Base image -> https://github.com/runpod/containers/blob/main/official-templates/base/Dockerfile
 # DockerHub -> https://hub.docker.com/r/runpod/base/tags
-FROM runpod/base:0.4.0-cuda11.8.0
+FROM runpod/base:0.4.0-cuda11.8.0@sha256:4d3d4b3c5a5c2b3a5a5c3b2a5a4d2b3a2b3c5a3b2a5d2b3a3b4c3d3b5c3d4a3
+
+WORKDIR /
 
 # The base image comes with many system dependencies pre-installed to help you get started quickly.
 # Please refer to the base image's Dockerfile for more information before adding additional dependencies.
@@ -8,6 +10,7 @@ FROM runpod/base:0.4.0-cuda11.8.0
 
 # Environment variable will be set by RunPod
 ENV HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}
+ENV HUGGINGFACE_HUB_CACHE="/root/.cache/huggingface"
 
 # Python dependencies
 COPY builder/requirements.txt /requirements.txt
@@ -16,17 +19,9 @@ RUN python3.11 -m pip install --upgrade pip && \
     rm /requirements.txt
 
 # Add src files
-ADD src .
+ADD src /src
 
-# Login to HuggingFace and download models during build
-RUN if [ -n "${HUGGING_FACE_HUB_TOKEN}" ]; then \
-        huggingface-cli login --token ${HUGGING_FACE_HUB_TOKEN} && \
-        python3.11 -c " \
-        from diffusers import AutoPipelineForText2Image; \
-        import torch; \
-        pipeline = AutoPipelineForText2Image.from_pretrained('black-forest-labs/FLUX.1-dev', token='${HUGGING_FACE_HUB_TOKEN}'); \
-        pipeline.load_lora_weights('soloai1/fluxtrain2', weight_name='my_first_flux_lora_v1_000003500.safetensors', token='${HUGGING_FACE_HUB_TOKEN}') \
-        "; \
-    fi
+# Set working directory
+WORKDIR /src
 
-CMD python3.11 -u /handler.py
+CMD ["python3.11", "-u", "handler.py"]

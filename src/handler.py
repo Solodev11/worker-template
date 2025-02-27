@@ -49,44 +49,40 @@ def handler(event) -> Dict:
         if not input_data.get("prompt"):
             return {"status": "error", "message": "Prompt is required"}
 
-        # Load pipeline (should be cached from build)
+        # Load pipeline and LoRA weights
         pipeline = AutoPipelineForText2Image.from_pretrained(
             'black-forest-labs/FLUX.1-dev',
             torch_dtype=torch.bfloat16,
             token=os.environ.get("HUGGING_FACE_HUB_TOKEN")
         ).to('cuda')
 
-        # Load LoRA weights
         pipeline.load_lora_weights(
             'soloai1/fluxtrain2',
             weight_name='my_first_flux_lora_v1_000003500.safetensors',
             token=os.environ.get("HUGGING_FACE_HUB_TOKEN")
         )
 
-        # Set parameters
-        params = {
-            "prompt": input_data["prompt"],
-            "num_inference_steps": input_data.get("num_inference_steps", 50),
-            "guidance_scale": input_data.get("guidance_scale", 7.0),
-            "joint_attention_kwargs": {
-                "scale": input_data.get("joint_attention_scale", 0.65)
-            }
-        }
-
         # Calculate dimensions
         megapixels = input_data.get("megapixels", 1)
         aspect_width = input_data.get("aspect_width", 2)
         aspect_height = input_data.get("aspect_height", 3)
         total_pixels = megapixels * 1000000
-        params["width"] = int((total_pixels * aspect_width / aspect_height) ** 0.5)
-        params["height"] = int(params["width"] * aspect_height / aspect_width)
+        width = int((total_pixels * aspect_width / aspect_height) ** 0.5)
+        height = int(width * aspect_height / aspect_width)
 
         # Generate image
-        output = pipeline(**params)
+        output = pipeline(
+            prompt=input_data["prompt"],
+            num_inference_steps=input_data.get("num_inference_steps", 50),
+            guidance_scale=input_data.get("guidance_scale", 7.0),
+            height=height,
+            width=width,
+            joint_attention_kwargs={"scale": input_data.get("joint_attention_scale", 0.65)}
+        )
 
         # Convert to base64
         buffer = io.BytesIO()
-        output.images[0].save(buffer, format="JPEG", quality=100)  # Added quality parameter
+        output.images[0].save(buffer, format="JPEG", quality=100)
         image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
         return {
