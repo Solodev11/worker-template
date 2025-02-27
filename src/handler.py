@@ -56,6 +56,13 @@ def handler(event) -> Dict:
             token=os.environ.get("HUGGING_FACE_HUB_TOKEN")
         ).to('cuda')
 
+        # Load LoRA weights
+        pipeline.load_lora_weights(
+            'soloai1/fluxtrain2',
+            weight_name='my_first_flux_lora_v1_000003500.safetensors',
+            token=os.environ.get("HUGGING_FACE_HUB_TOKEN")
+        )
+
         # Set parameters
         params = {
             "prompt": input_data["prompt"],
@@ -79,7 +86,7 @@ def handler(event) -> Dict:
 
         # Convert to base64
         buffer = io.BytesIO()
-        output.images[0].save(buffer, format="JPEG")
+        output.images[0].save(buffer, format="JPEG", quality=100)  # Added quality parameter
         image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
         return {
