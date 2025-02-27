@@ -60,6 +60,16 @@
                     ]
                 }
             ]
+        },
+        "1.0.0": {
+            "imageName": "your-image-name:tag",
+            "minimumCudaVersion": "11.8",
+            "categories": [
+                {
+                    "title": "Generation Settings",
+                    "settings": ["prompt", "megapixels", "joint_attention_scale"]
+                }
+            ]
         }
     },
     "schema": {
@@ -111,6 +121,27 @@
               { "value": "tensorizer", "label": "tensorizer" },
               { "value": "bitsandbytes", "label": "bitsandbytes" }
             ]
+        },
+        "prompt": {
+            "env_var_name": "PROMPT",
+            "description": "Text prompt for image generation",
+            "required": true,
+            "type": "text"
+        },
+        "megapixels": {
+            "env_var_name": "MEGAPIXELS",
+            "value": 1,
+            "description": "Image resolution in megapixels",
+            "required": false,
+            "type": "number"
+        },
+        "joint_attention_scale": {
+            "env_var_name": "JOINT_ATTENTION_SCALE",
+            "value": 0.65,
+            "title": "Joint Attention Scale",
+            "description": "Scale factor for joint attention (0.0 to 1.0)",
+            "required": false,
+            "type": "number"
         }
     }
 }

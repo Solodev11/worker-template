@@ -6,12 +6,8 @@ FROM runpod/base:0.4.0-cuda11.8.0
 # Please refer to the base image's Dockerfile for more information before adding additional dependencies.
 # IMPORTANT: The base image overrides the default huggingface cache location.
 
-
-# --- Optional: System dependencies ---
-# COPY builder/setup.sh /setup.sh
-# RUN /bin/bash /setup.sh && \
-#     rm /setup.sh
-
+# Environment variable will be set by RunPod
+ENV HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}
 
 # Python dependencies
 COPY builder/requirements.txt /requirements.txt
@@ -19,11 +15,13 @@ RUN python3.11 -m pip install --upgrade pip && \
     python3.11 -m pip install --upgrade -r /requirements.txt --no-cache-dir && \
     rm /requirements.txt
 
-# NOTE: The base image comes with multiple Python versions pre-installed.
-#       It is reccommended to specify the version of Python when running your code.
-
-
-# Add src files (Worker Template)
+# Add src files
 ADD src .
+
+# Login to HuggingFace
+RUN --mount=type=secret,id=hf_token \
+    if [ -f "/run/secrets/hf_token" ]; then \
+        huggingface-cli login --token $(cat /run/secrets/hf_token); \
+    fi
 
 CMD python3.11 -u /handler.py
