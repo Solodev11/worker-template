@@ -19,7 +19,12 @@ RUN python3.11 -m pip install --upgrade pip && \
     rm /requirements.txt
 
 # Add src files
-ADD src /src
+ADD src .
+
+# Login to HuggingFace
+RUN if [ -n "${HUGGING_FACE_HUB_TOKEN}" ]; then \
+        python3.11 -c "from huggingface_hub.commands.user import login; login('${HUGGING_FACE_HUB_TOKEN}')" \
+    fi
 
 # Set working directory
 WORKDIR /src

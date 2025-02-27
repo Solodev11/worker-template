@@ -39,6 +39,24 @@ INPUT_SCHEMA = {
     }
 }
 
+# Global pipeline instance
+pipeline = None
+
+def init_pipeline():
+    """Initialize the pipeline if not already done"""
+    global pipeline
+    if pipeline is None:
+        pipeline = AutoPipelineForText2Image.from_pretrained(
+            'black-forest-labs/FLUX.1-dev',
+            torch_dtype=torch.bfloat16
+        ).to('cuda')
+        
+        pipeline.load_lora_weights(
+            'soloai1/fluxtrain2',
+            weight_name='my_first_flux_lora_v1_000003500.safetensors'
+        )
+    return pipeline
+
 def handler(event) -> Dict:
     """
     Handler function that generates images based on text prompts
@@ -49,18 +67,9 @@ def handler(event) -> Dict:
         if not input_data.get("prompt"):
             return {"status": "error", "message": "Prompt is required"}
 
-        # Load pipeline and LoRA weights
-        pipeline = AutoPipelineForText2Image.from_pretrained(
-            'black-forest-labs/FLUX.1-dev',
-            torch_dtype=torch.bfloat16,
-            token=os.environ.get("HUGGING_FACE_HUB_TOKEN")
-        ).to('cuda')
-
-        pipeline.load_lora_weights(
-            'soloai1/fluxtrain2',
-            weight_name='my_first_flux_lora_v1_000003500.safetensors',
-            token=os.environ.get("HUGGING_FACE_HUB_TOKEN")
-        )
+        # Initialize pipeline if needed
+        global pipeline
+        pipeline = init_pipeline()
 
         # Calculate dimensions
         megapixels = input_data.get("megapixels", 1)
