@@ -25,3 +25,23 @@ RUN --mount=type=secret,id=hf_token \
     fi
 
 CMD python3.11 -u /handler.py
+```
+
+#!/usr/bin/env python
+import runpod
+
+def handler(event):
+    """
+    Simple test handler that returns a welcome message
+    Once this works, we'll add the image generation code back
+    """
+    try:
+        return {
+            "status": "success",
+            "message": "Handler is working!"
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+if __name__ == "__main__":
+    runpod.serverless.start({"handler": handler})

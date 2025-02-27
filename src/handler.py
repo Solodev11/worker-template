@@ -3,95 +3,69 @@ import runpod
 import torch
 from diffusers import AutoPipelineForText2Image
 from typing import Dict
-
-# Input validation schema
-INPUT_SCHEMA = {
-    "prompt": {
-        "type": str,
-        "required": True
-    },
-    "megapixels": {
-        "type": int,
-        "default": 1,
-        "min": 1,
-        "max": 4
-    },
-    "aspect_width": {
-        "type": int,
-        "default": 2,
-        "min": 1
-    },
-    "aspect_height": {
-        "type": int,
-        "default": 3,
-        "min": 1
-    },
-    "num_inference_steps": {
-        "type": int,
-        "default": 50,
-        "min": 1,
-        "max": 100
-    },
-    "guidance_scale": {
-        "type": float,
-        "default": 7.0,
-        "min": 1.0,
-        "max": 20.0
-    },
-    "joint_attention_scale": {  # Added new parameter
-        "type": float,
-        "default": 0.65,
-        "min": 0.0,
-        "max": 1.0
-    }
-}
-
-# Initialize the pipeline globally for reuse
-@runpod.init({"schema": INPUT_SCHEMA})
-def init_pipeline():
-    try:
-        pipeline = AutoPipelineForText2Image.from_pretrained(
-            'black-forest-labs/FLUX.1-dev',
-            torch_dtype=torch.bfloat16
-        ).to('cuda')
-        
-        pipeline.load_lora_weights(
-            'soloai1/fluxtrain2',
-            weight_name='my_first_flux_lora_v1_000003500.safetensors'
-        )
-        return pipeline
-    except Exception as e:
-        raise RuntimeError(f"Failed to initialize model: {str(e)}")
+import base64
+import io
 
 # Global pipeline instance
-pipeline = init_pipeline()
+pipeline = None
 
-@runpod.runpod.handler(input_schema=INPUT_SCHEMA)
+def init_pipeline():
+    """Initialize the pipeline on first use"""
+    global pipeline
+    if pipeline is None:
+        try:
+            pipeline = AutoPipelineForText2Image.from_pretrained(
+                'black-forest-labs/FLUX.1-dev',
+                torch_dtype=torch.bfloat16
+            ).to('cuda')
+            
+            pipeline.load_lora_weights(
+                'soloai1/fluxtrain2',
+                weight_name='my_first_flux_lora_v1_000003500.safetensors'
+            )
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize model: {str(e)}")
+    return pipeline
+
 def handler(event) -> Dict:
+    """
+    Handler function that generates images based on text prompts
+    """
     try:
-        input_data = event["input"]
-        
-        # Calculate dimensions
-        total_pixels = input_data["megapixels"] * 1000000
-        width = int((total_pixels * input_data["aspect_width"] / input_data["aspect_height"]) ** 0.5)
-        height = int(width * input_data["aspect_height"] / input_data["aspect_width"])
+        # Get input
+        input_data = event.get("input", {})
+        if not input_data.get("prompt"):
+            return {"status": "error", "message": "Prompt is required"}
 
-        # Set joint attention kwargs
-        joint_attention_kwargs = {"scale": input_data.get("joint_attention_scale", 0.65)}
+        # Initialize pipeline if needed
+        global pipeline
+        if pipeline is None:
+            pipeline = init_pipeline()
+
+        # Set defaults
+        megapixels = input_data.get("megapixels", 1)
+        aspect_width = input_data.get("aspect_width", 2)
+        aspect_height = input_data.get("aspect_height", 3)
+        num_inference_steps = input_data.get("num_inference_steps", 50)
+        guidance_scale = input_data.get("guidance_scale", 7.0)
+        joint_attention_scale = input_data.get("joint_attention_scale", 0.65)
+
+        # Calculate dimensions
+        total_pixels = megapixels * 1000000
+        width = int((total_pixels * aspect_width / aspect_height) ** 0.5)
+        height = int(width * aspect_height / aspect_width)
 
         # Generate image
         output = pipeline(
             input_data["prompt"],
-            num_inference_steps=input_data["num_inference_steps"],
-            guidance_scale=input_data["guidance_scale"],
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
             height=height,
             width=width,
-            joint_attention_kwargs=joint_attention_kwargs  # Added parameter
+            joint_attention_kwargs={"scale": joint_attention_scale}
         )
 
         # Convert to base64
-        import io
-        import base64
         buffer = io.BytesIO()
         output.images[0].save(buffer, format="JPEG")
         image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')

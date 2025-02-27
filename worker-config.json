@@ -67,7 +67,9 @@
             "categories": [
                 {
                     "title": "Generation Settings",
-                    "settings": ["prompt", "megapixels", "joint_attention_scale"]
+                    "settings": ["prompt", "megapixels", "joint_attention_scale", 
+                               "aspect_width", "aspect_height", "num_inference_steps", 
+                               "guidance_scale"]
                 }
             ]
         }
@@ -138,7 +140,6 @@
         "joint_attention_scale": {
             "env_var_name": "JOINT_ATTENTION_SCALE",
             "value": 0.65,
-            "title": "Joint Attention Scale",
             "description": "Scale factor for joint attention (0.0 to 1.0)",
             "required": false,
             "type": "number"

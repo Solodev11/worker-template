@@ -6,18 +6,16 @@
       }
     },
     "input": {
-      "name": "Dolly"
+      "prompt": "A test image",
+      "megapixels": 1,
+      "aspect_width": 2,
+      "aspect_height": 3,
+      "num_inference_steps": 50,
+      "guidance_scale": 7.0,
+      "joint_attention_scale": 0.65
     },
-    "expectedOutput": "Hello, Dolly!"
-  },
-  {
-    "hardwareConfig": {
-      "endpointConfig": {
-        "gpuIds": "ADA_24,AMPERE_16,AMPERE_24,AMPERE_48,AMPERE_80"
-      }
-    },
-    "input": {
-      "name": "DALL-E"
+    "expectedOutput": {
+      "status": "success"
     }
   }
 ]
