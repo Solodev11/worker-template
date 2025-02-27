@@ -13,13 +13,12 @@ RUN python3.11 -m pip install --upgrade pip && \
     python3.11 -m pip install --upgrade -r /requirements.txt --no-cache-dir && \
     rm /requirements.txt
 
+# Copy model fetcher and run it
+COPY builder/model_fetcher.py /model_fetcher.py
+RUN python3.11 /model_fetcher.py && rm /model_fetcher.py
+
 # Copy the source code
 ADD src .
-
-# Optional: Login to Hugging Face during build if token is provided
-RUN if [ -n "${HUGGING_FACE_HUB_TOKEN}" ]; then \
-        python3.11 -c "from huggingface_hub.commands.user import login; login('${HUGGING_FACE_HUB_TOKEN}')" ; \
-    fi
 
 # Set workdir for execution
 WORKDIR /src
